@@ -1,16 +1,13 @@
 import chalk from "chalk";
 import { RunnerConfig, ConfigManager } from "./config";
 import { ToolExecutor } from "./executor";
-import { WebSocketClient } from "./websocket-client";
 import fetch from "node-fetch";
 
 export class Runner {
   private config: RunnerConfig;
   private executor: ToolExecutor;
-  private wsClient: WebSocketClient | null = null;
   private running = false;
   private pollInterval = 2000;
-  private useWebSocket = false;
 
   constructor(config: RunnerConfig) {
     this.config = config;
@@ -44,19 +41,13 @@ export class Runner {
     console.log();
     console.log(chalk.green("Connected!"));
     console.log(chalk.gray("Device ID:"), this.config.deviceId);
-    console.log(chalk.gray("Mode:"), this.useWebSocket ? "WebSocket" : "HTTP Polling");
+    console.log(chalk.gray("Mode:"), "HTTP Polling");
     console.log();
     console.log(chalk.gray("Press Ctrl+C to stop"));
     console.log();
 
     this.running = true;
-
-    if (this.useWebSocket) {
-      this.wsClient = new WebSocketClient(this.config);
-      await this.wsClient.connect();
-    } else {
-      this.poll();
-    }
+    this.poll();
   }
 
   private async pairDevice(code: string): Promise<{ id: string; platform: string; version: string } | null> {
@@ -174,6 +165,5 @@ export class Runner {
 
   stop(): void {
     this.running = false;
-    this.wsClient?.disconnect();
   }
 }

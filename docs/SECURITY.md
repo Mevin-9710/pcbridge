@@ -43,7 +43,7 @@ Destructive command patterns are detected and require approval:
 
 - The local runner only makes outbound HTTPS connections to the cloud API
 - No inbound ports need to be opened
-- WebSocket connections are authenticated with device IDs
+- Requests are authenticated with device IDs
 
 ## Threat Model
 

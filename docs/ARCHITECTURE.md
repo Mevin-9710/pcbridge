@@ -16,7 +16,7 @@ MCP Client → Cloud MCP Endpoint → Request Queue → Local Runner → Tool Ex
 
 1. MCP client sends a tool call to the cloud endpoint
 2. Cloud validates the request and queues it
-3. Local runner polls (or receives via WebSocket) for pending requests
+3. Local runner polls for pending requests
 4. Runner executes the tool locally
 5. Runner submits the response back to the cloud
 6. Cloud returns the response to the MCP client
@@ -46,7 +46,7 @@ MCP Client → Cloud MCP Endpoint → Request Queue → Local Runner → Tool Ex
 | MCP SDK | @modelcontextprotocol/sdk |
 | Styling | Tailwind CSS + Apple Liquid Glass |
 | Local Runtime | Node.js 20+ |
-| Communication | WebSocket + HTTP polling |
+| Communication | HTTP polling |
 | Deployment | Vercel |
 
 ## Project Structure
@@ -58,7 +58,6 @@ pcbridge/
 │   │   ├── mcp/           # MCP endpoint
 │   │   ├── devices/       # Device management
 │   │   ├── requests/      # Request handling
-│   │   ├── ws/            # WebSocket endpoint
 │   │   ├── health/        # Health check
 │   │   └── mcp-config/    # Config generator
 │   ├── dashboard/         # Dashboard page
@@ -73,7 +72,6 @@ pcbridge/
 │   ├── src/               # Runner source
 │   │   ├── runner.ts      # Main runner
 │   │   ├── executor.ts    # Tool executor
-│   │   ├── websocket-client.ts
 │   │   └── tools/         # Tool implementations
 │   └── skills/            # Reusable skills
 ├── docs/                  # Documentation
