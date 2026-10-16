@@ -79,3 +79,51 @@ pcbridge/
 ├── docs/                  # Documentation
 └── setup.sh               # Setup script
 ```
+
+## State Management and Serverless Constraints
+
+PCBridge's cloud gateway keeps runtime state (paired devices, pending
+requests, MCP tool registrations) in module memory, exposed through
+`globalThis` singletons so the state is shared across Next.js route bundles.
+
+This "single shared instance" model is correct for:
+
+- Local development (`next dev`)
+- Self-hosted Node.js deployments (a single `next start` process)
+- Single-region, single-instance hosting
+
+**Vercel serverless limitation:** on Vercel's serverless functions, each
+function instance has its own memory. Devices paired in one invocation may
+not be visible to another invocation served by a different instance. For
+production multi-instance deployment, the three stores
+(`lib/device-registry.ts`, `lib/request-queue.ts`, `lib/mcp-server.ts`)
+should be backed by a shared store such as Vercel KV / Redis. The interfaces
+are intentionally small and pure, so swapping the backing store is a
+localized change.
+
+The MCP Streamable HTTP calls (`tools/call`) block until the local runner
+returns a result, with a 30-second timeout. This fits Vercel's default
+serverless duration limit; longer operations should be split into
+asynchronous jobs.
+
+## Tested Behaviors (E2E)
+
+The full loop was verified end-to-end against a running dev server and a
+real local runner:
+
+| Step | Result |
+|------|--------|
+| Health check | 200 healthy |
+| Create pairing code | 6-char code, 10-min expiry |
+| Pair device | device registered, status online |
+| `initialize` | MCP handshake returns serverInfo |
+| `tools/list` | 15 tools enumerated |
+| `read_file` / `write_file` / `list_files` | execute on the runner host |
+| `grep_files` | searches file contents on the runner host |
+| `run_command` (safe) | executes directly |
+| `run_command` (destructive) | blocked, requires approval |
+| Approval flow | request queued → user approves → runner executes |
+| `setup.sh` | served as `application/x-sh` |
+| `mcp-config` | emits Claude/Cursor/VS Code configs |
+| Dashboard / connect-pc / landing | all return 200 |
+
