@@ -6,7 +6,7 @@ import Link from "next/link";
 export default function ConnectPC() {
   const [copied, setCopied] = useState(false);
 
-  const setupCommand = `curl -fsSL https://pcbridge.russell.app/setup.sh -o setup.sh && bash setup.sh`;
+  const setupCommand = `curl -fsSL https://pcbridge.vercel.app/setup.sh -o setup.sh && bash setup.sh`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(setupCommand);
@@ -113,7 +113,7 @@ export default function ConnectPC() {
                 <p className="text-sm text-white font-medium mb-2">2. Download the Runner</p>
                 <div className="code-block">
                   <pre>
-                    <span className="command">$</span> curl -fsSL https://pcbridge.russell.app/setup.sh -o setup.sh
+                    <span className="command">$</span> curl -fsSL https://pcbridge.vercel.app/setup.sh -o setup.sh
                   </pre>
                 </div>
               </div>
@@ -149,7 +149,7 @@ export default function ConnectPC() {
 {`{
   "mcpServers": {
     "pcbridge": {
-      "url": "https://pcbridge.russell.app/api/mcp",
+      "url": "https://pcbridge.vercel.app/api/mcp",
       "headers": {
         "X-Device-Id": "YOUR_DEVICE_ID"
       }

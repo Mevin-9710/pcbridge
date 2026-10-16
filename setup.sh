@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PCBRIDGE_VERSION="0.1.0"
-PCBRIDGE_API_URL="https://pcbridge.russell.app"
+PCBRIDGE_API_URL="https://pcbridge.vercel.app"
 INSTALL_DIR="${HOME}/.pcbridge"
 RUNNER_DIR="${INSTALL_DIR}/runner"
 
@@ -191,7 +191,7 @@ print_next_steps() {
     echo
     echo -e "${BLUE}Next steps:${NC}"
     echo
-    echo "  1. Go to https://pcbridge.russell.app/dashboard"
+    echo "  1. Go to https://pcbridge.vercel.app/dashboard"
     echo "  2. Click 'Generate Code' to get a pairing code"
     echo "  3. Run the following command to start PCBridge:"
     echo
@@ -203,7 +203,7 @@ print_next_steps() {
     echo '     {'
     echo '       "mcpServers": {'
     echo '         "pcbridge": {'
-    echo '           "url": "https://pcbridge.russell.app/api/mcp",'
+    echo '           "url": "https://pcbridge.vercel.app/api/mcp",'
     echo '           "headers": {'
     echo '             "X-Device-Id": "YOUR_DEVICE_ID"'
     echo '           }'
@@ -212,7 +212,7 @@ print_next_steps() {
     echo '     }'
     echo
     echo -e "${BLUE}Documentation:${NC}"
-    echo "  Setup guide:  https://pcbridge.russell.app/connect-pc"
+    echo "  Setup guide:  https://pcbridge.vercel.app/connect-pc"
     echo "  GitHub:       https://github.com/Mevin-9710/pcbridge"
     echo
 }

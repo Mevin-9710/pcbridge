@@ -16,7 +16,7 @@ program
   .command("start")
   .description("Start the PCBridge runner")
   .option("-c, --code <code>", "Pairing code from the dashboard")
-  .option("-a, --api <url>", "API URL", "https://pcbridge.russell.app")
+  .option("-a, --api <url>", "API URL", "https://pcbridge.vercel.app")
   .option("-d, --device <name>", "Device name", "My Computer")
   .option("-p, --project <dir>", "Project directory", process.cwd())
   .option("--no-approval", "Disable approval for destructive operations")

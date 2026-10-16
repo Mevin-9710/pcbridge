@@ -11,7 +11,7 @@
 ### 1. Download and Run the Setup Script
 
 ```bash
-curl -fsSL https://pcbridge.russell.app/setup.sh -o setup.sh && bash setup.sh
+curl -fsSL https://pcbridge.vercel.app/setup.sh -o setup.sh && bash setup.sh
 ```
 
 The script will:
@@ -22,7 +22,7 @@ The script will:
 
 ### 2. Get a Pairing Code
 
-1. Go to [pcbridge.russell.app/dashboard](https://pcbridge.russell.app/dashboard)
+1. Go to [pcbridge.vercel.app/dashboard](https://pcbridge.vercel.app/dashboard)
 2. Enter a device name (e.g., "My Laptop")
 3. Click "Generate Code"
 4. Copy the 6-character code
@@ -45,7 +45,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 {
   "mcpServers": {
     "pcbridge": {
-      "url": "https://pcbridge.russell.app/api/mcp",
+      "url": "https://pcbridge.vercel.app/api/mcp",
       "headers": {
         "X-Device-Id": "YOUR_DEVICE_ID"
       }
@@ -62,7 +62,7 @@ Add to `.cursor/mcp.json` in your project:
 {
   "mcpServers": {
     "pcbridge": {
-      "url": "https://pcbridge.russell.app/api/mcp",
+      "url": "https://pcbridge.vercel.app/api/mcp",
       "headers": {
         "X-Device-Id": "YOUR_DEVICE_ID"
       }
@@ -80,7 +80,7 @@ Add to your VS Code settings:
   "mcp.servers": {
     "pcbridge": {
       "type": "http",
-      "url": "https://pcbridge.russell.app/api/mcp",
+      "url": "https://pcbridge.vercel.app/api/mcp",
       "headers": {
         "X-Device-Id": "YOUR_DEVICE_ID"
       }
@@ -97,7 +97,7 @@ Run the following command:
 pcbridge status
 ```
 
-Or check the dashboard at [pcbridge.russell.app/dashboard](https://pcbridge.russell.app/dashboard).
+Or check the dashboard at [pcbridge.vercel.app/dashboard](https://pcbridge.vercel.app/dashboard).
 
 ## Troubleshooting
 

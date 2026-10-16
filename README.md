@@ -13,7 +13,7 @@ PCBridge is a web-hosted MCP bridge that lets ChatGPT, Claude, Gemini, and other
 └─────────────────┘     └──────────────────┘     └─────────────────┘
 ```
 
-1. **Cloud** (`pcbridge.russell.app`): Hosts the dashboard, MCP gateway, and request routing
+1. **Cloud** (`pcbridge.vercel.app`): Hosts the dashboard, MCP gateway, and request routing
 2. **Local Runner**: Lightweight agent on your computer that executes tool calls
 3. **Secure Connection**: Token-based pairing with configurable approval for destructive operations
 
@@ -27,7 +27,7 @@ curl -fsSL https://pcbridge.vercel.app/setup.sh -o setup.sh && bash setup.sh
 
 ### 2. Get a Pairing Code
 
-Go to [pcbridge.vercel.app/dashboard](https://pcbridge.russell.app/dashboard) and click "Generate Code".
+Go to [pcbridge.vercel.app/dashboard](https://pcbridge.vercel.app/dashboard) and click "Generate Code".
 
 ### 3. Start PCBridge
 
@@ -43,7 +43,7 @@ Add to your chatbot's MCP configuration:
 {
   "mcpServers": {
     "pcbridge": {
-      "url": "https://pcbridge.russell.app/api/mcp",
+      "url": "https://pcbridge.vercel.app/api/mcp",
       "headers": {
         "X-Device-Id": "YOUR_DEVICE_ID"
       }
