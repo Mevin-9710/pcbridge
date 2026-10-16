@@ -3,6 +3,8 @@ set -euo pipefail
 
 PCBRIDGE_VERSION="0.1.0"
 PCBRIDGE_API_URL="https://pcbridge.vercel.app"
+PCBRIDGE_REPO="Mevin-9710/pcbridge"
+PCBRIDGE_REF="${PCBRIDGE_REF:-main}"
 INSTALL_DIR="${HOME}/.pcbridge"
 RUNNER_DIR="${INSTALL_DIR}/runner"
 
@@ -112,51 +114,43 @@ install_runner() {
 
     mkdir -p "$RUNNER_DIR"
 
-    log_info "Downloading runner package..."
-
-    local arch
-    arch=$(uname -m)
-    local platform
-    platform=$(detect_os)
-
-    local download_url
-    case "$platform" in
-        linux)
-            case "$arch" in
-                x86_64)  download_url="${PCBRIDGE_API_URL}/releases/download/v${PCBRIDGE_VERSION}/pcbridge-runner-linux-x64.tar.gz" ;;
-                aarch64) download_url="${PCBRIDGE_API_URL}/releases/download/v${PCBRIDGE_VERSION}/pcbridge-runner-linux-arm64.tar.gz" ;;
-                *)       download_url="${PCBRIDGE_API_URL}/releases/download/v${PCBRIDGE_VERSION}/pcbridge-runner-linux-x64.tar.gz" ;;
-            esac
-            ;;
-        macos)
-            case "$arch" in
-                x86_64)  download_url="${PCBRIDGE_API_URL}/releases/download/v${PCBRIDGE_VERSION}/pcbridge-runner-macos-x64.tar.gz" ;;
-                arm64)   download_url="${PCBRIDGE_API_URL}/releases/download/v${PCBRIDGE_VERSION}/pcbridge-runner-macos-arm64.tar.gz" ;;
-                *)       download_url="${PCBRIDGE_API_URL}/releases/download/v${PCBRIDGE_VERSION}/pcbridge-runner-macos-x64.tar.gz" ;;
-            esac
-            ;;
-        *)
-            download_url="${PCBRIDGE_API_URL}/releases/download/v${PCBRIDGE_VERSION}/pcbridge-runner-linux-x64.tar.gz"
-            ;;
-    esac
-
     local temp_dir
     temp_dir=$(mktemp -d)
 
+    local archive_url="https://github.com/${PCBRIDGE_REPO}/archive/${PCBRIDGE_REF}.tar.gz"
+    log_info "Downloading runner source..."
+
     if command -v curl &> /dev/null; then
-        curl -fsSL "$download_url" -o "${temp_dir}/runner.tar.gz"
+        curl -fsSL "$archive_url" -o "${temp_dir}/src.tar.gz"
     elif command -v wget &> /dev/null; then
-        wget -q "$download_url" -O "${temp_dir}/runner.tar.gz"
+        wget -q "$archive_url" -O "${temp_dir}/src.tar.gz"
     else
         log_error "Neither curl nor wget is available. Please install one of them."
         rm -rf "$temp_dir"
         return 1
     fi
 
-    tar -xzf "${temp_dir}/runner.tar.gz" -C "$RUNNER_DIR"
+    tar -xzf "${temp_dir}/src.tar.gz" -C "$temp_dir"
+
+    local extracted
+    extracted=$(find "$temp_dir" -maxdepth 1 -type d -name 'pcbridge-*' | head -n 1)
+    if [ -z "$extracted" ] || [ ! -d "${extracted}/local-runner" ]; then
+        log_error "Could not find runner source in downloaded archive"
+        rm -rf "$temp_dir"
+        return 1
+    fi
+
+    cp -R "${extracted}/local-runner/." "$RUNNER_DIR/"
     rm -rf "$temp_dir"
 
-    chmod +x "${RUNNER_DIR}/pcbridge"
+    log_info "Installing dependencies (this may take a moment)..."
+    ( cd "$RUNNER_DIR" && npm install --no-audit --no-fund --loglevel=error )
+
+    log_info "Building runner..."
+    ( cd "$RUNNER_DIR" && npm run build )
+
+    log_info "Cleaning up dev dependencies..."
+    ( cd "$RUNNER_DIR" && npm prune --omit=dev >/dev/null 2>&1 ) || true
 
     log_success "Runner installed to $RUNNER_DIR"
 }
@@ -169,7 +163,7 @@ create_launcher() {
 
     cat > "${bin_dir}/pcbridge" << 'EOF'
 #!/usr/bin/env bash
-exec "${HOME}/.pcbridge/runner/pcbridge" "$@"
+exec node "${HOME}/.pcbridge/runner/dist/index.js" "$@"
 EOF
 
     chmod +x "${bin_dir}/pcbridge"
