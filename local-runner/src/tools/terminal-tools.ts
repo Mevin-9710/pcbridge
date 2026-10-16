@@ -34,7 +34,7 @@ export class TerminalTools {
     return DESTRUCTIVE_PATTERNS.some((pattern) => pattern.test(command));
   }
 
-  async runCommand(args: Record<string, unknown>): Promise<{
+  async runCommand(args: Record<string, unknown>, approved = false): Promise<{
     content: Array<{ type: string; text: string }>;
     isError: boolean;
   }> {
@@ -45,7 +45,7 @@ export class TerminalTools {
       return { content: [{ type: "text", text: "Error: command is required" }], isError: true };
     }
 
-    if (this.isDestructive(command) && this.config.requireApproval) {
+    if (this.isDestructive(command) && this.config.requireApproval && !approved) {
       return {
         content: [
           {

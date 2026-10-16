@@ -34,6 +34,7 @@ export interface PendingRequest {
   toolName: string;
   arguments: Record<string, unknown>;
   requiresApproval: boolean;
+  approved: boolean;
   timestamp: string;
 }
 

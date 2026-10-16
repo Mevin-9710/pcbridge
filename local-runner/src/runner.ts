@@ -103,7 +103,7 @@ export class Runner {
 
     if (!res.ok) return;
 
-    const data = (await res.json()) as { pending?: Array<{ requestId: string; toolName: string; arguments: Record<string, unknown> }> };
+    const data = (await res.json()) as { pending?: Array<{ requestId: string; toolName: string; arguments: Record<string, unknown>; approved?: boolean }> };
     const pending = data.pending || [];
 
     for (const request of pending) {
@@ -115,13 +115,14 @@ export class Runner {
     requestId: string;
     toolName: string;
     arguments: Record<string, unknown>;
+    approved?: boolean;
   }): Promise<void> {
-    const { requestId, toolName, arguments: args } = request;
+    const { requestId, toolName, arguments: args, approved } = request;
 
     console.log(chalk.blue("Executing:"), toolName, JSON.stringify(args).slice(0, 80));
 
     try {
-      const result = await this.executor.execute(toolName, args);
+      const result = await this.executor.execute(toolName, args, { approved });
 
       await fetch(`${this.config.apiUrl}/api/requests`, {
         method: "POST",

@@ -47,6 +47,7 @@ export function createRequest(
       toolName,
       arguments: args,
       requiresApproval,
+      approved: true,
       timestamp: request.timestamp,
     });
     getState().pendingByDevice.set(deviceId, pending);
@@ -111,6 +112,7 @@ export function approveRequest(requestId: string, approvedBy: string): boolean {
     toolName: request.toolName,
     arguments: request.arguments,
     requiresApproval: request.requiresApproval,
+    approved: true,
     timestamp: request.timestamp,
   });
   getState().pendingByDevice.set(request.deviceId, pending);

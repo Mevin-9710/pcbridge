@@ -24,7 +24,8 @@ export class ToolExecutor {
 
   async execute(
     toolName: string,
-    args: Record<string, unknown>
+    args: Record<string, unknown>,
+    options: { approved?: boolean } = {}
   ): Promise<{ content: Array<{ type: string; text: string }>; isError: boolean }> {
     switch (toolName) {
       case "read_file":
@@ -38,7 +39,7 @@ export class ToolExecutor {
       case "delete_file":
         return this.fileTools.deleteFile(args);
       case "run_command":
-        return this.terminalTools.runCommand(args);
+        return this.terminalTools.runCommand(args, options.approved === true);
       case "git_status":
         return this.gitTools.status(args);
       case "git_diff":

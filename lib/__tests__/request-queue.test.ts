@@ -14,7 +14,7 @@ describe("Request Queue", () => {
   const deviceId = "test-device-id";
 
   beforeEach(() => {
-    // Clear state between tests
+    delete (globalThis as { __pcbridgeQueue?: unknown }).__pcbridgeQueue;
   });
 
   it("should create a request", () => {
@@ -22,6 +22,23 @@ describe("Request Queue", () => {
     expect(request).toBeDefined();
     expect(request.toolName).toBe("read_file");
     expect(request.status).toBe("pending");
+  });
+
+  it("should queue non-approval requests immediately as approved", () => {
+    createRequest(deviceId, "read_file", { path: "/test" });
+    const pending = getPendingRequests(deviceId);
+    expect(pending.length).toBe(1);
+    expect(pending[0].approved).toBe(true);
+  });
+
+  it("should not queue approval-required requests until approved", () => {
+    const request = createRequest(deviceId, "run_command", { command: "rm -rf /" }, true);
+    expect(getPendingRequests(deviceId).length).toBe(0);
+
+    approveRequest(request.id, "user");
+    const pending = getPendingRequests(deviceId);
+    expect(pending.length).toBe(1);
+    expect(pending[0].approved).toBe(true);
   });
 
   it("should get a request by ID", () => {
@@ -32,7 +49,7 @@ describe("Request Queue", () => {
   });
 
   it("should get pending requests for a device", () => {
-    createRequest(deviceId, "run_command", { command: "rm -rf /" }, true);
+    createRequest(deviceId, "read_file", { path: "/test" });
     const pending = getPendingRequests(deviceId);
     expect(pending.length).toBeGreaterThan(0);
   });
