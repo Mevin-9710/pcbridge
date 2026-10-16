@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const devices = listDevices();
+  const devices = await listDevices();
   return NextResponse.json({ devices });
 }
 
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "deviceName is required" }, { status: 400 });
     }
 
-    const code = createPendingPairing(deviceName);
+    const code = await createPendingPairing(deviceName);
 
     return NextResponse.json({
       pairingCode: code,

@@ -16,11 +16,11 @@ export async function GET(request: NextRequest) {
   const deviceId = request.nextUrl.searchParams.get("deviceId");
 
   if (!deviceId) {
-    const approvals = getPendingApprovals();
+    const approvals = await getPendingApprovals();
     return NextResponse.json({ pendingApprovals: approvals });
   }
 
-  const pending = getPendingRequests(deviceId);
+  const pending = await getPendingRequests(deviceId);
   return NextResponse.json({ pending });
 }
 
@@ -38,14 +38,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (!validatePairingCode(code)) {
+      if (!(await validatePairingCode(code))) {
         return NextResponse.json(
           { error: "Invalid or expired pairing code" },
           { status: 400 }
         );
       }
 
-      const device = registerDevice(
+      const device = await registerDevice(
         code,
         deviceName,
         platform || "unknown",
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      submitResponse(requestId, deviceId, content, isError || false);
+      await submitResponse(requestId, deviceId, content, isError || false);
       return NextResponse.json({ message: "Response submitted" });
     }
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const approved = approveRequest(requestId, approvedBy || "user");
+      const approved = await approveRequest(requestId, approvedBy || "user");
       if (!approved) {
         return NextResponse.json(
           { error: "Request not found or already processed" },
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const denied = denyRequest(requestId);
+      const denied = await denyRequest(requestId);
       if (!denied) {
         return NextResponse.json(
           { error: "Request not found or already processed" },

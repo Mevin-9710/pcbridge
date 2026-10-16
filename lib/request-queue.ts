@@ -1,31 +1,14 @@
 import { ToolRequest, ToolResponse, PendingRequest } from "./types";
 import { randomBytes } from "crypto";
-import { getDevice } from "./device-registry";
+import { readState, writeState } from "./store";
 
-interface QueueState {
-  requests: Map<string, ToolRequest>;
-  responses: Map<string, ToolResponse>;
-  pendingByDevice: Map<string, PendingRequest[]>;
-}
-
-function getState(): QueueState {
-  const g = globalThis as typeof globalThis & { __pcbridgeQueue?: QueueState };
-  if (!g.__pcbridgeQueue) {
-    g.__pcbridgeQueue = {
-      requests: new Map(),
-      responses: new Map(),
-      pendingByDevice: new Map(),
-    };
-  }
-  return g.__pcbridgeQueue;
-}
-
-export function createRequest(
+export async function createRequest(
   deviceId: string,
   toolName: string,
   args: Record<string, unknown>,
   requiresApproval: boolean = false
-): ToolRequest {
+): Promise<ToolRequest> {
+  const state = await readState();
   const id = randomBytes(16).toString("hex");
   const request: ToolRequest = {
     id,
@@ -37,40 +20,44 @@ export function createRequest(
     requiresApproval,
   };
 
-  getState().requests.set(id, request);
-
-  if (!requiresApproval) {
-    const pending = getState().pendingByDevice.get(deviceId) || [];
-    pending.push({
-      requestId: id,
-      deviceId,
-      toolName,
-      arguments: args,
-      requiresApproval,
-      approved: true,
-      timestamp: request.timestamp,
-    });
-    getState().pendingByDevice.set(deviceId, pending);
-  }
-
+  state.requests[id] = request;
+  await writeState(state);
   return request;
 }
 
-export function getRequest(id: string): ToolRequest | undefined {
-  return getState().requests.get(id);
+export async function getRequest(id: string): Promise<ToolRequest | undefined> {
+  const state = await readState();
+  return state.requests[id];
 }
 
-export function getPendingRequests(deviceId: string): PendingRequest[] {
-  return getState().pendingByDevice.get(deviceId) || [];
+export async function getPendingRequests(deviceId: string): Promise<PendingRequest[]> {
+  const state = await readState();
+  return Object.values(state.requests)
+    .filter(
+      (r) =>
+        r.deviceId === deviceId &&
+        ((r.status === "pending" && !r.requiresApproval) || r.status === "approved")
+    )
+    .map((r) => ({
+      requestId: r.id,
+      deviceId: r.deviceId,
+      toolName: r.toolName,
+      arguments: r.arguments,
+      requiresApproval: r.requiresApproval,
+      approved: true,
+      timestamp: r.timestamp,
+    }));
 }
 
-export function submitResponse(
+export async function submitResponse(
   requestId: string,
   deviceId: string,
   content: Array<{ type: string; text: string }>,
   isError: boolean = false
-): void {
-  const response: ToolResponse = {
+): Promise<void> {
+  const state = await readState();
+
+  state.responses[requestId] = {
     requestId,
     deviceId,
     content,
@@ -78,68 +65,61 @@ export function submitResponse(
     timestamp: new Date().toISOString(),
   };
 
-  getState().responses.set(requestId, response);
-
-  const request = getState().requests.get(requestId);
+  const request = state.requests[requestId];
   if (request) {
     request.status = isError ? "failed" : "completed";
   }
 
-  const pending = getState().pendingByDevice.get(deviceId) || [];
-  const idx = pending.findIndex((p) => p.requestId === requestId);
-  if (idx !== -1) {
-    pending.splice(idx, 1);
-    getState().pendingByDevice.set(deviceId, pending);
-  }
+  await writeState(state);
 }
 
-export function getResponse(requestId: string): ToolResponse | undefined {
-  return getState().responses.get(requestId);
+export async function getResponse(requestId: string): Promise<ToolResponse | undefined> {
+  const state = await readState();
+  return state.responses[requestId];
 }
 
-export function approveRequest(requestId: string, approvedBy: string): boolean {
-  const request = getState().requests.get(requestId);
+export async function approveRequest(
+  requestId: string,
+  approvedBy: string
+): Promise<boolean> {
+  const state = await readState();
+  const request = state.requests[requestId];
   if (!request || request.status !== "pending") return false;
 
   request.status = "approved";
   request.approvedBy = approvedBy;
   request.approvedAt = new Date().toISOString();
 
-  const pending = getState().pendingByDevice.get(request.deviceId) || [];
-  pending.push({
-    requestId: request.id,
-    deviceId: request.deviceId,
-    toolName: request.toolName,
-    arguments: request.arguments,
-    requiresApproval: request.requiresApproval,
-    approved: true,
-    timestamp: request.timestamp,
-  });
-  getState().pendingByDevice.set(request.deviceId, pending);
-
+  await writeState(state);
   return true;
 }
 
-export function denyRequest(requestId: string): boolean {
-  const request = getState().requests.get(requestId);
+export async function denyRequest(requestId: string): Promise<boolean> {
+  const state = await readState();
+  const request = state.requests[requestId];
   if (!request || request.status !== "pending") return false;
 
-  submitResponse(
+  state.responses[requestId] = {
     requestId,
-    request.deviceId,
-    [{ type: "text", text: "Request denied by user" }],
-    true
-  );
+    deviceId: request.deviceId,
+    content: [{ type: "text", text: "Request denied by user" }],
+    isError: true,
+    timestamp: new Date().toISOString(),
+  };
   request.status = "denied";
+
+  await writeState(state);
   return true;
 }
 
-export function getRequestsForDevice(deviceId: string): ToolRequest[] {
-  return Array.from(getState().requests.values()).filter((r) => r.deviceId === deviceId);
+export async function getRequestsForDevice(deviceId: string): Promise<ToolRequest[]> {
+  const state = await readState();
+  return Object.values(state.requests).filter((r) => r.deviceId === deviceId);
 }
 
-export function getPendingApprovals(): ToolRequest[] {
-  return Array.from(getState().requests.values()).filter(
+export async function getPendingApprovals(): Promise<ToolRequest[]> {
+  const state = await readState();
+  return Object.values(state.requests).filter(
     (r) => r.requiresApproval && r.status === "pending"
   );
 }

@@ -8,66 +8,66 @@ import {
   updateDeviceStatus,
   removeDevice,
 } from "../device-registry";
+import { __resetStore } from "../store";
 
 describe("Device Registry", () => {
   beforeEach(() => {
-    // Clear state between tests
-    listDevices().forEach((d) => removeDevice(d.id));
+    __resetStore();
   });
 
-  it("should create a pending pairing", () => {
-    const code = createPendingPairing("Test Device");
+  it("should create a pending pairing", async () => {
+    const code = await createPendingPairing("Test Device");
     expect(code).toBeDefined();
     expect(code).toHaveLength(6);
   });
 
-  it("should validate a pairing code", () => {
-    const code = createPendingPairing("Test Device");
-    expect(validatePairingCode(code)).toBe(true);
+  it("should validate a pairing code", async () => {
+    const code = await createPendingPairing("Test Device");
+    expect(await validatePairingCode(code)).toBe(true);
   });
 
-  it("should reject an invalid pairing code", () => {
-    expect(validatePairingCode("INVALID")).toBe(false);
+  it("should reject an invalid pairing code", async () => {
+    expect(await validatePairingCode("INVALID")).toBe(false);
   });
 
-  it("should register a device", () => {
-    const code = createPendingPairing("Test Device");
-    const device = registerDevice(code, "Test Device", "linux", "0.1.0");
+  it("should register a device", async () => {
+    const code = await createPendingPairing("Test Device");
+    const device = await registerDevice(code, "Test Device", "linux", "0.1.0");
     expect(device).toBeDefined();
     expect(device?.name).toBe("Test Device");
     expect(device?.status).toBe("online");
   });
 
-  it("should get a device by ID", () => {
-    const code = createPendingPairing("Test Device");
-    const device = registerDevice(code, "Test Device", "linux", "0.1.0");
-    const found = getDevice(device!.id);
+  it("should get a device by ID", async () => {
+    const code = await createPendingPairing("Test Device");
+    const device = await registerDevice(code, "Test Device", "linux", "0.1.0");
+    const found = await getDevice(device!.id);
     expect(found).toBeDefined();
     expect(found?.name).toBe("Test Device");
   });
 
-  it("should list all devices", () => {
-    const code1 = createPendingPairing("Device 1");
-    const code2 = createPendingPairing("Device 2");
-    registerDevice(code1, "Device 1", "linux", "0.1.0");
-    registerDevice(code2, "Device 2", "macos", "0.1.0");
-    const devices = listDevices();
+  it("should list all devices", async () => {
+    const code1 = await createPendingPairing("Device 1");
+    const code2 = await createPendingPairing("Device 2");
+    await registerDevice(code1, "Device 1", "linux", "0.1.0");
+    await registerDevice(code2, "Device 2", "macos", "0.1.0");
+    const devices = await listDevices();
     expect(devices).toHaveLength(2);
   });
 
-  it("should update device status", () => {
-    const code = createPendingPairing("Test Device");
-    const device = registerDevice(code, "Test Device", "linux", "0.1.0");
-    updateDeviceStatus(device!.id, "offline");
-    const updated = getDevice(device!.id);
+  it("should update device status", async () => {
+    const code = await createPendingPairing("Test Device");
+    const device = await registerDevice(code, "Test Device", "linux", "0.1.0");
+    await updateDeviceStatus(device!.id, "offline");
+    const updated = await getDevice(device!.id);
     expect(updated?.status).toBe("offline");
   });
 
-  it("should remove a device", () => {
-    const code = createPendingPairing("Test Device");
-    const device = registerDevice(code, "Test Device", "linux", "0.1.0");
-    const removed = removeDevice(device!.id);
+  it("should remove a device", async () => {
+    const code = await createPendingPairing("Test Device");
+    const device = await registerDevice(code, "Test Device", "linux", "0.1.0");
+    const removed = await removeDevice(device!.id);
     expect(removed).toBe(true);
-    expect(getDevice(device!.id)).toBeUndefined();
+    expect(await getDevice(device!.id)).toBeUndefined();
   });
 });

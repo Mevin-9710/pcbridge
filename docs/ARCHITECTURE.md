@@ -80,24 +80,35 @@ pcbridge/
 
 ## State Management and Serverless Constraints
 
-PCBridge's cloud gateway keeps runtime state (paired devices, pending
-requests, MCP tool registrations) in module memory, exposed through
-`globalThis` singletons so the state is shared across Next.js route bundles.
+PCBridge's cloud gateway keeps runtime state (paired devices, pairing codes,
+pending requests, MCP tool registrations) in a single state document owned by
+`lib/store.ts`.
 
-This "single shared instance" model is correct for:
+Two backends are supported:
+
+- **Shared store (recommended for production):** an Upstash Redis / Vercel KV
+  REST endpoint. Activated automatically when `KV_REST_API_URL` +
+  `KV_REST_API_TOKEN` (or `UPSTASH_REDIS_REST_URL` +
+  `UPSTASH_REDIS_REST_TOKEN`) are set. All serverless instances read and write
+  the same state.
+- **In-memory fallback:** used when no store is configured. Kept in a
+  `globalThis` singleton so the state is shared across Next.js route bundles
+  within a single process.
+
+The in-memory fallback is correct for:
 
 - Local development (`next dev`)
 - Self-hosted Node.js deployments (a single `next start` process)
-- Single-region, single-instance hosting
+- Single-instance hosting
 
-**Vercel serverless limitation:** on Vercel's serverless functions, each
-function instance has its own memory. Devices paired in one invocation may
-not be visible to another invocation served by a different instance. For
-production multi-instance deployment, the three stores
-(`lib/device-registry.ts`, `lib/request-queue.ts`, `lib/mcp-server.ts`)
-should be backed by a shared store such as Vercel KV / Redis. The interfaces
-are intentionally small and pure, so swapping the backing store is a
-localized change.
+**Vercel serverless limitation:** on Vercel, multiple instances of the
+serverless functions run with separate memory. With the in-memory fallback,
+devices paired in one invocation may not be visible to another invocation
+served by a different instance (the dashboard can show no device even though
+the runner reports "Connected"). **Connect an Upstash Redis / Vercel KV store
+to share state across instances.** The `/api/health` response reports
+`storage: "shared"` or `"in-memory"`, and the dashboard shows a warning banner
+when running in-memory.
 
 The MCP Streamable HTTP calls (`tools/call`) block until the local runner
 returns a result, with a 30-second timeout. This fits Vercel's default
@@ -111,7 +122,7 @@ real local runner:
 
 | Step | Result |
 |------|--------|
-| Health check | 200 healthy |
+| Health check | 200 healthy, reports storage mode |
 | Create pairing code | 6-char code, 10-min expiry |
 | Pair device | device registered, status online |
 | `initialize` | MCP handshake returns serverInfo |
@@ -121,7 +132,9 @@ real local runner:
 | `run_command` (safe) | executes directly |
 | `run_command` (destructive) | blocked, requires approval |
 | Approval flow | request queued → user approves → runner executes |
+| Approval deny | file preserved, no execution |
 | `setup.sh` | served as `application/x-sh` |
 | `mcp-config` | emits Claude/Cursor/VS Code configs |
-| Dashboard / connect-pc / landing | all return 200 |
+| Dashboard | lists devices + MCP config per client |
+| connect-pc / landing | return 200 |
 

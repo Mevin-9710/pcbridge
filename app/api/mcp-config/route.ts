@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const device = getDevice(deviceId);
+  const device = await getDevice(deviceId);
   if (!device) {
     return NextResponse.json(
       { error: "Device not found" },

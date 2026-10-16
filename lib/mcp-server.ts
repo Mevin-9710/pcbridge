@@ -47,7 +47,7 @@ export async function executeTool(
     };
   }
 
-  const device = getDevice(deviceId);
+  const device = await getDevice(deviceId);
   if (!device || device.status !== "online") {
     return {
       content: [{ type: "text", text: "Device is not connected" }],
@@ -55,10 +55,10 @@ export async function executeTool(
     };
   }
 
-  updateDeviceLastSeen(deviceId);
+  await updateDeviceLastSeen(deviceId);
 
   const requiresApproval = requiresApprovalFor(toolName, args);
-  const request = createRequest(deviceId, toolName, args, requiresApproval);
+  const request = await createRequest(deviceId, toolName, args, requiresApproval);
 
   if (requiresApproval) {
     return {
@@ -91,8 +91,8 @@ function waitForResponse(
 ): Promise<{ content: Array<{ type: string; text: string }>; isError: boolean } | null> {
   return new Promise((resolve) => {
     const start = Date.now();
-    const check = () => {
-      const response = getResponse(requestId);
+    const check = async () => {
+      const response = await getResponse(requestId);
       if (response) {
         resolve({ content: response.content, isError: response.isError });
         return;

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     const deviceId = request.headers.get("X-Device-Id") || generateDeviceId();
-    const device = getDevice(deviceId);
+    const device = method === "tools/call" ? await getDevice(deviceId) : undefined;
 
     if (method === "initialize") {
       return NextResponse.json({

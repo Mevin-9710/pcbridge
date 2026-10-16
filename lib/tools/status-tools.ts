@@ -10,7 +10,7 @@ export const getStatusTool: Tool = {
     required: [],
   },
   handler: async (_args, deviceId) => {
-    const device = getDevice(deviceId);
+    const device = await getDevice(deviceId);
     if (!device) {
       return {
         content: [{ type: "text", text: "Device not found" }],

@@ -9,78 +9,88 @@ import {
   denyRequest,
   getPendingApprovals,
 } from "../request-queue";
+import { __resetStore } from "../store";
 
 describe("Request Queue", () => {
   const deviceId = "test-device-id";
 
   beforeEach(() => {
-    delete (globalThis as { __pcbridgeQueue?: unknown }).__pcbridgeQueue;
+    __resetStore();
   });
 
-  it("should create a request", () => {
-    const request = createRequest(deviceId, "read_file", { path: "/test" });
+  it("should create a request", async () => {
+    const request = await createRequest(deviceId, "read_file", { path: "/test" });
     expect(request).toBeDefined();
     expect(request.toolName).toBe("read_file");
     expect(request.status).toBe("pending");
   });
 
-  it("should queue non-approval requests immediately as approved", () => {
-    createRequest(deviceId, "read_file", { path: "/test" });
-    const pending = getPendingRequests(deviceId);
-    expect(pending.length).toBe(1);
-    expect(pending[0].approved).toBe(true);
-  });
-
-  it("should not queue approval-required requests until approved", () => {
-    const request = createRequest(deviceId, "run_command", { command: "rm -rf /" }, true);
-    expect(getPendingRequests(deviceId).length).toBe(0);
-
-    approveRequest(request.id, "user");
-    const pending = getPendingRequests(deviceId);
-    expect(pending.length).toBe(1);
-    expect(pending[0].approved).toBe(true);
-  });
-
-  it("should get a request by ID", () => {
-    const request = createRequest(deviceId, "read_file", { path: "/test" });
-    const found = getRequest(request.id);
+  it("should get a request by ID", async () => {
+    const request = await createRequest(deviceId, "read_file", { path: "/test" });
+    const found = await getRequest(request.id);
     expect(found).toBeDefined();
     expect(found?.toolName).toBe("read_file");
   });
 
-  it("should get pending requests for a device", () => {
-    createRequest(deviceId, "read_file", { path: "/test" });
-    const pending = getPendingRequests(deviceId);
-    expect(pending.length).toBeGreaterThan(0);
+  it("should queue non-approval requests immediately as approved", async () => {
+    await createRequest(deviceId, "read_file", { path: "/test" });
+    const pending = await getPendingRequests(deviceId);
+    expect(pending.length).toBe(1);
+    expect(pending[0].approved).toBe(true);
   });
 
-  it("should submit a response", () => {
-    const request = createRequest(deviceId, "read_file", { path: "/test" });
-    submitResponse(request.id, deviceId, [{ type: "text", text: "file content" }], false);
-    const response = getResponse(request.id);
+  it("should not queue approval-required requests until approved", async () => {
+    const request = await createRequest(
+      deviceId,
+      "run_command",
+      { command: "rm -rf /" },
+      true
+    );
+    expect((await getPendingRequests(deviceId)).length).toBe(0);
+
+    await approveRequest(request.id, "user");
+    const pending = await getPendingRequests(deviceId);
+    expect(pending.length).toBe(1);
+    expect(pending[0].approved).toBe(true);
+  });
+
+  it("should submit a response", async () => {
+    const request = await createRequest(deviceId, "read_file", { path: "/test" });
+    await submitResponse(request.id, deviceId, [{ type: "text", text: "file content" }], false);
+    const response = await getResponse(request.id);
     expect(response).toBeDefined();
     expect(response?.content[0].text).toBe("file content");
   });
 
-  it("should approve a request", () => {
-    const request = createRequest(deviceId, "run_command", { command: "rm -rf /" }, true);
-    const approved = approveRequest(request.id, "user");
+  it("should approve a request", async () => {
+    const request = await createRequest(
+      deviceId,
+      "run_command",
+      { command: "rm -rf /" },
+      true
+    );
+    const approved = await approveRequest(request.id, "user");
     expect(approved).toBe(true);
-    const updated = getRequest(request.id);
+    const updated = await getRequest(request.id);
     expect(updated?.status).toBe("approved");
   });
 
-  it("should deny a request", () => {
-    const request = createRequest(deviceId, "run_command", { command: "rm -rf /" }, true);
-    const denied = denyRequest(request.id);
+  it("should deny a request", async () => {
+    const request = await createRequest(
+      deviceId,
+      "run_command",
+      { command: "rm -rf /" },
+      true
+    );
+    const denied = await denyRequest(request.id);
     expect(denied).toBe(true);
-    const updated = getRequest(request.id);
+    const updated = await getRequest(request.id);
     expect(updated?.status).toBe("denied");
   });
 
-  it("should get pending approvals", () => {
-    createRequest(deviceId, "run_command", { command: "rm -rf /" }, true);
-    const approvals = getPendingApprovals();
+  it("should get pending approvals", async () => {
+    await createRequest(deviceId, "run_command", { command: "rm -rf /" }, true);
+    const approvals = await getPendingApprovals();
     expect(approvals.length).toBeGreaterThan(0);
   });
 });

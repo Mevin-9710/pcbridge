@@ -1,55 +1,52 @@
 import { Device } from "./types";
 import { randomBytes } from "crypto";
+import { readState, writeState } from "./store";
 
-interface RegistryState {
-  devices: Map<string, Device>;
-  pendingPairings: Map<string, { code: string; createdAt: string }>;
-}
-
-function getState(): RegistryState {
-  const g = globalThis as typeof globalThis & { __pcbridgeRegistry?: RegistryState };
-  if (!g.__pcbridgeRegistry) {
-    g.__pcbridgeRegistry = {
-      devices: new Map(),
-      pendingPairings: new Map(),
-    };
-  }
-  return g.__pcbridgeRegistry;
-}
+const PAIRING_TTL_MS = 10 * 60 * 1000;
 
 export function generatePairingCode(): string {
   return randomBytes(3).toString("hex").toUpperCase();
 }
 
-export function createPendingPairing(deviceName: string): string {
+export async function createPendingPairing(deviceName: string): Promise<string> {
+  const state = await readState();
   const code = generatePairingCode();
-  getState().pendingPairings.set(code, {
-    code,
-    createdAt: new Date().toISOString(),
-  });
+  state.pairingCodes[code] = { createdAt: new Date().toISOString() };
+  await writeState(state);
   return code;
 }
 
-export function validatePairingCode(code: string): boolean {
-  const pairing = getState().pendingPairings.get(code);
+export async function validatePairingCode(code: string): Promise<boolean> {
+  const state = await readState();
+  const pairing = state.pairingCodes[code];
   if (!pairing) return false;
 
   const age = Date.now() - new Date(pairing.createdAt).getTime();
-  if (age > 10 * 60 * 1000) {
-    getState().pendingPairings.delete(code);
+  if (age > PAIRING_TTL_MS) {
+    delete state.pairingCodes[code];
+    await writeState(state);
     return false;
   }
 
   return true;
 }
 
-export function registerDevice(
+export async function registerDevice(
   code: string,
   name: string,
   platform: string,
   version: string
-): Device | null {
-  if (!validatePairingCode(code)) return null;
+): Promise<Device | null> {
+  const state = await readState();
+  const pairing = state.pairingCodes[code];
+  if (!pairing) return null;
+
+  const age = Date.now() - new Date(pairing.createdAt).getTime();
+  if (age > PAIRING_TTL_MS) {
+    delete state.pairingCodes[code];
+    await writeState(state);
+    return null;
+  }
 
   const id = randomBytes(16).toString("hex");
   const device: Device = {
@@ -62,37 +59,48 @@ export function registerDevice(
     version,
   };
 
-  getState().devices.set(id, device);
-  getState().pendingPairings.delete(code);
+  state.devices[id] = device;
+  delete state.pairingCodes[code];
+  await writeState(state);
   return device;
 }
 
-export function getDevice(id: string): Device | undefined {
-  return getState().devices.get(id);
+export async function getDevice(id: string): Promise<Device | undefined> {
+  const state = await readState();
+  return state.devices[id];
 }
 
-export function updateDeviceStatus(
+export async function updateDeviceStatus(
   id: string,
   status: "online" | "offline"
-): void {
-  const device = getState().devices.get(id);
+): Promise<void> {
+  const state = await readState();
+  const device = state.devices[id];
   if (device) {
     device.status = status;
     device.lastSeen = new Date().toISOString();
+    await writeState(state);
   }
 }
 
-export function updateDeviceLastSeen(id: string): void {
-  const device = getState().devices.get(id);
+export async function updateDeviceLastSeen(id: string): Promise<void> {
+  const state = await readState();
+  const device = state.devices[id];
   if (device) {
     device.lastSeen = new Date().toISOString();
+    await writeState(state);
   }
 }
 
-export function listDevices(): Device[] {
-  return Array.from(getState().devices.values());
+export async function listDevices(): Promise<Device[]> {
+  const state = await readState();
+  return Object.values(state.devices);
 }
 
-export function removeDevice(id: string): boolean {
-  return getState().devices.delete(id);
+export async function removeDevice(id: string): Promise<boolean> {
+  const state = await readState();
+  if (!state.devices[id]) return false;
+  delete state.devices[id];
+  await writeState(state);
+  return true;
 }

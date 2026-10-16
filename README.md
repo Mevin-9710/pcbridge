@@ -93,6 +93,22 @@ npm run build
 npm run typecheck
 ```
 
+## Deployment
+
+The cloud gateway keeps runtime state (paired devices, pending approvals) in a
+store. On serverless hosts each request can hit a different instance, so state
+must be shared:
+
+1. Deploy to Vercel.
+2. Add an **Upstash Redis** database (Vercel → Storage → Upstash, or the
+   Marketplace integration). This injects `KV_REST_API_URL` and
+   `KV_REST_API_TOKEN` automatically.
+3. Redeploy. `/api/health` reports `"storage": "shared"`.
+
+Without a shared store, the app falls back to in-memory state — fine for local
+development and single-instance hosting, but on Vercel the dashboard may not
+show a connected runner. The dashboard warns when in-memory mode is active.
+
 ## Documentation
 
 - [Setup Guide](https://pcbridge.vercel.app/connect-pc)
