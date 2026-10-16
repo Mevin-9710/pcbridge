@@ -22,12 +22,12 @@ PCBridge is a web-hosted MCP bridge that lets ChatGPT, Claude, Gemini, and other
 ### 1. Install the Runner
 
 ```bash
-curl -fsSL https://pcbridge.russell.app/setup.sh -o setup.sh && bash setup.sh
+curl -fsSL https://pcbridge.vercel.app/setup.sh -o setup.sh && bash setup.sh
 ```
 
 ### 2. Get a Pairing Code
 
-Go to [pcbridge.russell.app/dashboard](https://pcbridge.russell.app/dashboard) and click "Generate Code".
+Go to [pcbridge.vercel.app/dashboard](https://pcbridge.russell.app/dashboard) and click "Generate Code".
 
 ### 3. Start PCBridge
 
@@ -95,7 +95,7 @@ npm run typecheck
 
 ## Documentation
 
-- [Setup Guide](https://pcbridge.russell.app/connect-pc)
+- [Setup Guide](https://pcbridge.vercel.app/connect-pc)
 - [Security Model](./docs/SECURITY.md)
 - [GitHub](https://github.com/Mevin-9710/pcbridge)
 
