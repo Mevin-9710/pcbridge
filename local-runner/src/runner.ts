@@ -74,11 +74,11 @@ export class Runner {
       });
 
       if (!res.ok) {
-        const error = await res.json();
+        const error = (await res.json()) as { error?: string };
         throw new Error(error.error || "Pairing failed");
       }
 
-      const data = await res.json();
+      const data = (await res.json()) as { device: { id: string; platform: string; version: string } };
       return data.device;
     } catch (error) {
       console.error(chalk.red("Pairing error:"), error instanceof Error ? error.message : error);
@@ -112,7 +112,7 @@ export class Runner {
 
     if (!res.ok) return;
 
-    const data = await res.json();
+    const data = (await res.json()) as { pending?: Array<{ requestId: string; toolName: string; arguments: Record<string, unknown> }> };
     const pending = data.pending || [];
 
     for (const request of pending) {
@@ -125,7 +125,7 @@ export class Runner {
     toolName: string;
     arguments: Record<string, unknown>;
   }): Promise<void> {
-    const { requestId, toolName, args } = request;
+    const { requestId, toolName, arguments: args } = request;
 
     console.log(chalk.blue("Executing:"), toolName, JSON.stringify(args).slice(0, 80));
 

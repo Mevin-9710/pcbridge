@@ -1,4 +1,5 @@
 import WebSocket from "ws";
+import fetch from "node-fetch";
 import { RunnerConfig } from "./config";
 import { ToolExecutor } from "./executor";
 import chalk from "chalk";
@@ -65,7 +66,7 @@ export class WebSocketClient {
   }): Promise<void> {
     if (message.type !== "request") return;
 
-    const { requestId, toolName, args } = message;
+    const { requestId, toolName, arguments: args } = message;
     console.log(chalk.blue("Executing:"), toolName);
 
     try {
