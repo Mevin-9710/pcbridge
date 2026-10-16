@@ -2,18 +2,21 @@ import { RunnerConfig } from "./config";
 import { FileTools } from "./tools/file-tools";
 import { TerminalTools } from "./tools/terminal-tools";
 import { GitTools } from "./tools/git-tools";
+import { SkillTools } from "./tools/skill-tools";
 
 export class ToolExecutor {
   private config: RunnerConfig;
   private fileTools: FileTools;
   private terminalTools: TerminalTools;
   private gitTools: GitTools;
+  private skillTools: SkillTools;
 
   constructor(config: RunnerConfig) {
     this.config = config;
     this.fileTools = new FileTools(config);
     this.terminalTools = new TerminalTools(config);
     this.gitTools = new GitTools(config);
+    this.skillTools = new SkillTools(config);
   }
 
   async execute(
@@ -41,6 +44,10 @@ export class ToolExecutor {
         return this.gitTools.log(args);
       case "git_commit":
         return this.gitTools.commit(args);
+      case "list_skills":
+        return this.skillTools.listSkills();
+      case "get_skill":
+        return this.skillTools.getSkill(args);
       case "get_status":
         return this.getStatus();
       default:
