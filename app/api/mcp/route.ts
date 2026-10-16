@@ -2,15 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { listTools, executeTool } from "@/lib/mcp-server";
 import { getDevice } from "@/lib/device-registry";
 import { randomBytes } from "crypto";
+import { registerAllTools } from "@/lib/tools";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+let toolsRegistered = false;
+
+function ensureToolsRegistered() {
+  if (!toolsRegistered) {
+    registerAllTools();
+    toolsRegistered = true;
+  }
+}
 
 function generateDeviceId(): string {
   return randomBytes(16).toString("hex");
 }
 
 export async function POST(request: NextRequest) {
+  ensureToolsRegistered();
+
   try {
     const body = await request.json();
     const { jsonrpc, id, method, params } = body;

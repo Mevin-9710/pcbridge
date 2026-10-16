@@ -1,14 +1,19 @@
 import { registerTool } from "../mcp-server";
-import { readFileTool } from "./file-tools";
+import { readFileTool, writeFileTool, editFileTool, listFilesTool, deleteFileTool } from "./file-tools";
 import { runCommandTool } from "./terminal-tools";
-import { gitStatusTool, gitDiffTool, gitLogTool } from "./git-tools";
+import { gitStatusTool, gitDiffTool, gitLogTool, gitCommitTool } from "./git-tools";
 import { getStatusTool } from "./status-tools";
 
 export function registerAllTools(): void {
   registerTool(readFileTool);
+  registerTool(writeFileTool);
+  registerTool(editFileTool);
+  registerTool(listFilesTool);
+  registerTool(deleteFileTool);
   registerTool(runCommandTool);
   registerTool(gitStatusTool);
   registerTool(gitDiffTool);
   registerTool(gitLogTool);
+  registerTool(gitCommitTool);
   registerTool(getStatusTool);
 }

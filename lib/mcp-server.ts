@@ -64,8 +64,9 @@ export async function executeTool(
 
   try {
     const result = await tool.handler(args, deviceId);
-    submitResponse(request.id, deviceId, result.content, result.isError || false);
-    return result;
+    const isError = result.isError || false;
+    submitResponse(request.id, deviceId, result.content, isError);
+    return { content: result.content, isError };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     submitResponse(
