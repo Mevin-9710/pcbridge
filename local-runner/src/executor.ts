@@ -3,6 +3,7 @@ import { FileTools } from "./tools/file-tools";
 import { TerminalTools } from "./tools/terminal-tools";
 import { GitTools } from "./tools/git-tools";
 import { SkillTools } from "./tools/skill-tools";
+import { SearchTools } from "./tools/search-tools";
 
 export class ToolExecutor {
   private config: RunnerConfig;
@@ -10,6 +11,7 @@ export class ToolExecutor {
   private terminalTools: TerminalTools;
   private gitTools: GitTools;
   private skillTools: SkillTools;
+  private searchTools: SearchTools;
 
   constructor(config: RunnerConfig) {
     this.config = config;
@@ -17,6 +19,7 @@ export class ToolExecutor {
     this.terminalTools = new TerminalTools(config);
     this.gitTools = new GitTools(config);
     this.skillTools = new SkillTools(config);
+    this.searchTools = new SearchTools(config);
   }
 
   async execute(
@@ -48,6 +51,10 @@ export class ToolExecutor {
         return this.skillTools.listSkills();
       case "get_skill":
         return this.skillTools.getSkill(args);
+      case "search_files":
+        return this.searchTools.searchFiles(args);
+      case "grep_files":
+        return this.searchTools.grepFiles(args);
       case "get_status":
         return this.getStatus();
       default:

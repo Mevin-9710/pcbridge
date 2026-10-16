@@ -4,6 +4,7 @@ import { runCommandTool } from "./terminal-tools";
 import { gitStatusTool, gitDiffTool, gitLogTool, gitCommitTool } from "./git-tools";
 import { getStatusTool } from "./status-tools";
 import { listSkillsTool, getSkillTool } from "./skill-tools";
+import { searchFilesTool, grepFilesTool } from "./search-tools";
 
 export function registerAllTools(): void {
   registerTool(readFileTool);
@@ -19,4 +20,6 @@ export function registerAllTools(): void {
   registerTool(getStatusTool);
   registerTool(listSkillsTool);
   registerTool(getSkillTool);
+  registerTool(searchFilesTool);
+  registerTool(grepFilesTool);
 }
