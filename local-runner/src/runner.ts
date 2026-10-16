@@ -10,7 +10,7 @@ export class Runner {
   private wsClient: WebSocketClient | null = null;
   private running = false;
   private pollInterval = 2000;
-  private useWebSocket = true;
+  private useWebSocket = false;
 
   constructor(config: RunnerConfig) {
     this.config = config;

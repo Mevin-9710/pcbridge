@@ -1,8 +1,21 @@
 import { Device } from "./types";
 import { randomBytes } from "crypto";
 
-const devices = new Map<string, Device>();
-const pendingPairings = new Map<string, { code: string; createdAt: string }>();
+interface RegistryState {
+  devices: Map<string, Device>;
+  pendingPairings: Map<string, { code: string; createdAt: string }>;
+}
+
+function getState(): RegistryState {
+  const g = globalThis as typeof globalThis & { __pcbridgeRegistry?: RegistryState };
+  if (!g.__pcbridgeRegistry) {
+    g.__pcbridgeRegistry = {
+      devices: new Map(),
+      pendingPairings: new Map(),
+    };
+  }
+  return g.__pcbridgeRegistry;
+}
 
 export function generatePairingCode(): string {
   return randomBytes(3).toString("hex").toUpperCase();
@@ -10,7 +23,7 @@ export function generatePairingCode(): string {
 
 export function createPendingPairing(deviceName: string): string {
   const code = generatePairingCode();
-  pendingPairings.set(code, {
+  getState().pendingPairings.set(code, {
     code,
     createdAt: new Date().toISOString(),
   });
@@ -18,12 +31,12 @@ export function createPendingPairing(deviceName: string): string {
 }
 
 export function validatePairingCode(code: string): boolean {
-  const pairing = pendingPairings.get(code);
+  const pairing = getState().pendingPairings.get(code);
   if (!pairing) return false;
 
   const age = Date.now() - new Date(pairing.createdAt).getTime();
   if (age > 10 * 60 * 1000) {
-    pendingPairings.delete(code);
+    getState().pendingPairings.delete(code);
     return false;
   }
 
@@ -49,20 +62,20 @@ export function registerDevice(
     version,
   };
 
-  devices.set(id, device);
-  pendingPairings.delete(code);
+  getState().devices.set(id, device);
+  getState().pendingPairings.delete(code);
   return device;
 }
 
 export function getDevice(id: string): Device | undefined {
-  return devices.get(id);
+  return getState().devices.get(id);
 }
 
 export function updateDeviceStatus(
   id: string,
   status: "online" | "offline"
 ): void {
-  const device = devices.get(id);
+  const device = getState().devices.get(id);
   if (device) {
     device.status = status;
     device.lastSeen = new Date().toISOString();
@@ -70,16 +83,16 @@ export function updateDeviceStatus(
 }
 
 export function updateDeviceLastSeen(id: string): void {
-  const device = devices.get(id);
+  const device = getState().devices.get(id);
   if (device) {
     device.lastSeen = new Date().toISOString();
   }
 }
 
 export function listDevices(): Device[] {
-  return Array.from(devices.values());
+  return Array.from(getState().devices.values());
 }
 
 export function removeDevice(id: string): boolean {
-  return devices.delete(id);
+  return getState().devices.delete(id);
 }

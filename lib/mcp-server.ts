@@ -1,23 +1,33 @@
 import { Tool } from "./types";
-import { createRequest, getResponse, submitResponse } from "./request-queue";
+import { createRequest, getResponse } from "./request-queue";
 import { getDevice, updateDeviceLastSeen } from "./device-registry";
 
-const tools = new Map<string, Tool>();
+interface McpState {
+  tools: Map<string, Tool>;
+}
+
+function getState(): McpState {
+  const g = globalThis as typeof globalThis & { __pcbridgeMcp?: McpState };
+  if (!g.__pcbridgeMcp) {
+    g.__pcbridgeMcp = { tools: new Map() };
+  }
+  return g.__pcbridgeMcp;
+}
 
 export function registerTool(tool: Tool): void {
-  tools.set(tool.name, tool);
+  getState().tools.set(tool.name, tool);
 }
 
 export function getTools(): Tool[] {
-  return Array.from(tools.values());
+  return Array.from(getState().tools.values());
 }
 
 export function getTool(name: string): Tool | undefined {
-  return tools.get(name);
+  return getState().tools.get(name);
 }
 
 export function listTools() {
-  return Array.from(tools.values()).map((t) => ({
+  return Array.from(getState().tools.values()).map((t) => ({
     name: t.name,
     description: t.description,
     inputSchema: t.inputSchema,
@@ -29,7 +39,7 @@ export async function executeTool(
   args: Record<string, unknown>,
   deviceId: string
 ): Promise<{ content: Array<{ type: string; text: string }>; isError: boolean }> {
-  const tool = tools.get(toolName);
+  const tool = getState().tools.get(toolName);
   if (!tool) {
     return {
       content: [{ type: "text", text: `Unknown tool: ${toolName}` }],
@@ -62,30 +72,66 @@ export async function executeTool(
     };
   }
 
-  try {
-    const result = await tool.handler(args, deviceId);
-    const isError = result.isError || false;
-    submitResponse(request.id, deviceId, result.content, isError);
-    return { content: result.content, isError };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    submitResponse(
-      request.id,
-      deviceId,
-      [{ type: "text", text: `Error: ${message}` }],
-      true
-    );
+  const response = await waitForResponse(request.id, 30000);
+  if (!response) {
     return {
-      content: [{ type: "text", text: `Error: ${message}` }],
+      content: [
+        { type: "text", text: "Timeout waiting for device to respond. Is the PCBridge runner running?" },
+      ],
       isError: true,
     };
   }
+
+  return { content: response.content, isError: response.isError };
 }
+
+function waitForResponse(
+  requestId: string,
+  timeoutMs: number
+): Promise<{ content: Array<{ type: string; text: string }>; isError: boolean } | null> {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const check = () => {
+      const response = getResponse(requestId);
+      if (response) {
+        resolve({ content: response.content, isError: response.isError });
+        return;
+      }
+      if (Date.now() - start >= timeoutMs) {
+        resolve(null);
+        return;
+      }
+      setTimeout(check, 500);
+    };
+    check();
+  });
+}
+
+const DESTRUCTIVE_PATTERNS = [
+  /\brm\s+-[rf]/i,
+  /\brm\s+-fr/i,
+  /\brm\s+-rf/i,
+  /\bmkfs/i,
+  /\bdd\s+.*of=\/dev\//i,
+  /\bchmod\s+-R\s+777/i,
+  /\bchown\s+-R/i,
+  /\bsudo\s+rm/i,
+  /\bgit\s+push\s+--force/i,
+  /\bgit\s+reset\s+--hard/i,
+  /\bgit\s+clean\s+-fd/i,
+  /\bnpm\s+publish/i,
+  /\bdocker\s+system\s+prune/i,
+  /\btruncate\s+-s\s+0/i,
+];
 
 function requiresApprovalFor(
   toolName: string,
-  _args: Record<string, unknown>
+  args: Record<string, unknown>
 ): boolean {
-  const approvalRequiredTools = ["run_command", "git_commit", "delete_file"];
-  return approvalRequiredTools.includes(toolName);
+  if (toolName === "git_commit" || toolName === "delete_file") return true;
+  if (toolName === "run_command") {
+    const command = (args.command as string) || "";
+    return DESTRUCTIVE_PATTERNS.some((p) => p.test(command));
+  }
+  return false;
 }

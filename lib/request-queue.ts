@@ -2,9 +2,23 @@ import { ToolRequest, ToolResponse, PendingRequest } from "./types";
 import { randomBytes } from "crypto";
 import { getDevice } from "./device-registry";
 
-const requests = new Map<string, ToolRequest>();
-const responses = new Map<string, ToolResponse>();
-const pendingByDevice = new Map<string, PendingRequest[]>();
+interface QueueState {
+  requests: Map<string, ToolRequest>;
+  responses: Map<string, ToolResponse>;
+  pendingByDevice: Map<string, PendingRequest[]>;
+}
+
+function getState(): QueueState {
+  const g = globalThis as typeof globalThis & { __pcbridgeQueue?: QueueState };
+  if (!g.__pcbridgeQueue) {
+    g.__pcbridgeQueue = {
+      requests: new Map(),
+      responses: new Map(),
+      pendingByDevice: new Map(),
+    };
+  }
+  return g.__pcbridgeQueue;
+}
 
 export function createRequest(
   deviceId: string,
@@ -23,10 +37,10 @@ export function createRequest(
     requiresApproval,
   };
 
-  requests.set(id, request);
+  getState().requests.set(id, request);
 
-  if (requiresApproval) {
-    const pending = pendingByDevice.get(deviceId) || [];
+  if (!requiresApproval) {
+    const pending = getState().pendingByDevice.get(deviceId) || [];
     pending.push({
       requestId: id,
       deviceId,
@@ -35,18 +49,18 @@ export function createRequest(
       requiresApproval,
       timestamp: request.timestamp,
     });
-    pendingByDevice.set(deviceId, pending);
+    getState().pendingByDevice.set(deviceId, pending);
   }
 
   return request;
 }
 
 export function getRequest(id: string): ToolRequest | undefined {
-  return requests.get(id);
+  return getState().requests.get(id);
 }
 
 export function getPendingRequests(deviceId: string): PendingRequest[] {
-  return pendingByDevice.get(deviceId) || [];
+  return getState().pendingByDevice.get(deviceId) || [];
 }
 
 export function submitResponse(
@@ -63,49 +77,67 @@ export function submitResponse(
     timestamp: new Date().toISOString(),
   };
 
-  responses.set(requestId, response);
+  getState().responses.set(requestId, response);
 
-  const request = requests.get(requestId);
+  const request = getState().requests.get(requestId);
   if (request) {
     request.status = isError ? "failed" : "completed";
   }
 
-  const pending = pendingByDevice.get(deviceId) || [];
+  const pending = getState().pendingByDevice.get(deviceId) || [];
   const idx = pending.findIndex((p) => p.requestId === requestId);
   if (idx !== -1) {
     pending.splice(idx, 1);
-    pendingByDevice.set(deviceId, pending);
+    getState().pendingByDevice.set(deviceId, pending);
   }
 }
 
 export function getResponse(requestId: string): ToolResponse | undefined {
-  return responses.get(requestId);
+  return getState().responses.get(requestId);
 }
 
 export function approveRequest(requestId: string, approvedBy: string): boolean {
-  const request = requests.get(requestId);
+  const request = getState().requests.get(requestId);
   if (!request || request.status !== "pending") return false;
 
   request.status = "approved";
   request.approvedBy = approvedBy;
   request.approvedAt = new Date().toISOString();
+
+  const pending = getState().pendingByDevice.get(request.deviceId) || [];
+  pending.push({
+    requestId: request.id,
+    deviceId: request.deviceId,
+    toolName: request.toolName,
+    arguments: request.arguments,
+    requiresApproval: request.requiresApproval,
+    timestamp: request.timestamp,
+  });
+  getState().pendingByDevice.set(request.deviceId, pending);
+
   return true;
 }
 
 export function denyRequest(requestId: string): boolean {
-  const request = requests.get(requestId);
+  const request = getState().requests.get(requestId);
   if (!request || request.status !== "pending") return false;
 
+  submitResponse(
+    requestId,
+    request.deviceId,
+    [{ type: "text", text: "Request denied by user" }],
+    true
+  );
   request.status = "denied";
   return true;
 }
 
 export function getRequestsForDevice(deviceId: string): ToolRequest[] {
-  return Array.from(requests.values()).filter((r) => r.deviceId === deviceId);
+  return Array.from(getState().requests.values()).filter((r) => r.deviceId === deviceId);
 }
 
 export function getPendingApprovals(): ToolRequest[] {
-  return Array.from(requests.values()).filter(
+  return Array.from(getState().requests.values()).filter(
     (r) => r.requiresApproval && r.status === "pending"
   );
 }

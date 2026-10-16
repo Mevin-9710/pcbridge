@@ -7,12 +7,11 @@ import { registerAllTools } from "@/lib/tools";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-let toolsRegistered = false;
-
 function ensureToolsRegistered() {
-  if (!toolsRegistered) {
+  const g = globalThis as typeof globalThis & { __pcbridgeToolsRegistered?: boolean };
+  if (!g.__pcbridgeToolsRegistered) {
     registerAllTools();
-    toolsRegistered = true;
+    g.__pcbridgeToolsRegistered = true;
   }
 }
 

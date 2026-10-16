@@ -9,6 +9,11 @@ export class SearchTools {
     this.config = config;
   }
 
+  private resolvePath(p: string): string {
+    if (path.isAbsolute(p)) return p;
+    return path.join(this.config.projectDir, p);
+  }
+
   async searchFiles(args: Record<string, unknown>): Promise<{
     content: Array<{ type: string; text: string }>;
     isError: boolean;
@@ -21,7 +26,7 @@ export class SearchTools {
     }
 
     try {
-      const resolved = path.join(this.config.projectDir, dirPath);
+      const resolved = this.resolvePath(dirPath);
       const results = this.searchInDirectory(resolved, pattern);
       return {
         content: [{ type: "text", text: results.join("\n") || "No matches found" }],
@@ -71,7 +76,7 @@ export class SearchTools {
     }
 
     try {
-      const resolved = path.join(this.config.projectDir, dirPath);
+      const resolved = this.resolvePath(dirPath);
       const results = this.grepInDirectory(resolved, pattern);
       return {
         content: [{ type: "text", text: results.join("\n") || "No matches found" }],
